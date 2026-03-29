@@ -8,6 +8,6 @@ export default function HomePage() {
     });
   }, []);
 
-  return <div>Home Page</div>;
+  return <div>Home hygygy Page</div>;
   
 }
