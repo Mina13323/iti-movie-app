@@ -1,0 +1,53 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #141414;
+  color: #fff;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.movie-card-hover {
+  transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+  cursor: pointer;
+}
+
+.movie-card-hover:hover {
+  transform: scale(1.08);
+  z-index: 10;
+}
+
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.movie-card-hover:hover .card-overlay {
+  opacity: 1;
+}
+
+.transition-transform {
+  transition: transform 0.3s ease;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141414;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b9090b;
+  border-radius: 10px;
+}
