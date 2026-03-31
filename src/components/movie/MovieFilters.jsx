@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getGenres } from "../../services/movieService";
+import { getGenres, getTVGenres } from "../../services/movieService";
 import { useLanguage } from "../../context/LanguageContext";
 import { cn } from "@/lib/utils";
 import {
