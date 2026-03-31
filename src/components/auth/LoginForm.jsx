@@ -65,7 +65,7 @@ export function LoginForm({ className, ...props }) {
       const token = res.data.request_token;
       
       const callbackUrl = window.location.origin + "/auth/callback";
-      const tmdbAuthUrl = `https://www.themoviedb.org/authenticate/${token}?redirect_to=${encodeURIComponent(callbackUrl)}`;
+      const tmdbAuthUrl = `${import.meta.env.VITE_TMDB_AUTH_URL}/${token}?redirect_to=${encodeURIComponent(callbackUrl)}`;
       
       window.location.href = tmdbAuthUrl;
     } catch (err) {

@@ -131,7 +131,7 @@ export default function MovieDetailsPage() {
   }
 
   const backdropUrl = movie.backdrop_path 
-    ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` 
+    ? `${import.meta.env.VITE_TMDB_IMAGE_BASE_URL}original${movie.backdrop_path}` 
     : "";
   
   const releaseYear = movie.release_date ? movie.release_date.split("-")[0] : "";

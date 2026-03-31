@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 export default function MovieCard({ movie }) {
   // Use a fallback image if no poster
   const imageUrl = movie.poster_path 
-    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+    ? `${import.meta.env.VITE_TMDB_IMAGE_BASE_URL}w500${movie.poster_path}` 
     : "https://via.placeholder.com/500x750?text=No+Image";
 
   // Handle both Movie (title, release_date) and Series (name, first_air_date)
@@ -16,7 +16,6 @@ export default function MovieCard({ movie }) {
   const year = releaseDate !== "N/A" ? releaseDate.split("-")[0] : "N/A";
   
   // Decide route based on presence of title (movie) or name (series)
-  // Or better, check the media_type if available, otherwise guess
   const isSeries = !!movie.name && !movie.title;
   const detailPath = isSeries ? `/series/${movie.id}` : `/movie/${movie.id}`;
 

@@ -129,7 +129,7 @@ export default function SeriesDetailsPage() {
   }
 
   const backdropUrl = series.backdrop_path 
-    ? `https://image.tmdb.org/t/p/original${series.backdrop_path}` 
+    ? `${import.meta.env.VITE_TMDB_IMAGE_BASE_URL}original${series.backdrop_path}` 
     : "";
   
   const releaseYear = series.first_air_date ? series.first_air_date.split("-")[0] : "";
