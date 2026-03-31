@@ -6,12 +6,20 @@ import { fileURLToPath } from "node:url"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-export default defineConfig(() => ({
-  base: process.env.CF_PAGES ? "/" : "/iti-movie-app/",
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(() => {
+  let base = "/"
+
+  if (process.env.GITHUB_ACTIONS) {
+    base = "/iti-movie-app/"
+  }
+
+  return {
+    base,
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
-}))
+  }
+})
