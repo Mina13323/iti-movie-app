@@ -2,17 +2,16 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from "node:path"
-import { fileURLToPath } from "node:url" // أضف هذا السطر
+import { fileURLToPath } from "node:url"
 
-// قم بتعريف __dirname يدوياً هنا
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-export default defineConfig({
-  base: "/iti-movie-app/",
+export default defineConfig(() => ({
+  base: process.env.CF_PAGES ? "/" : "/iti-movie-app/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-})
+}))
