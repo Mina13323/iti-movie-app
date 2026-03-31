@@ -7,6 +7,8 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuthStore } from "../../store/useAuthStore";
+import { Loader2 } from "lucide-react";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -20,6 +22,7 @@ const signupSchema = z.object({
 
 export function RegisterForm({ className, ...props }) {
   const nav = useNavigate();
+  const { register: registerAuth, isLoading } = useAuthStore();
 
   const {
     register,
@@ -29,13 +32,22 @@ export function RegisterForm({ className, ...props }) {
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = (data) => {
-    const existingUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
-    const isEmailTaken = existingUsers.some(user => user.email === data.email);
-    
-    if (isEmailTaken) {
-      toast.error("Account already exists!", {
-        description: "Please sign in instead.",
+  const onSubmit = async (data) => {
+    try {
+      await registerAuth(data);
+      
+      toast.success('Account created successfully!', {
+        icon: '🍿',
+        style: {
+            background: '#333',
+            color: 'white',
+            border: 'none',
+        }
+      });
+      nav("/login");
+    } catch (err) {
+      toast.error("Registration Failed", {
+        description: err.message || "Something went wrong. Please try again.",
         duration: 4000,
         style: {
           background: '#e50914',
@@ -43,23 +55,7 @@ export function RegisterForm({ className, ...props }) {
           border: 'none',
         }
       });
-      return; 
     }
-
-    const { confirmPassword, ...newUser } = data;
-    const updatedUsers = [...existingUsers, newUser];
-
-    localStorage.setItem("allUsers", JSON.stringify(updatedUsers));
-    
-    toast.success('Account created successfully!', {
-      icon: '🍿',
-      style: {
-          background: '#333',
-          color: 'white',
-          border: 'none',
-      }
-    });
-    nav("/login");
   };
 
   return (
@@ -127,8 +123,12 @@ export function RegisterForm({ className, ...props }) {
             {errors.confirmPassword && <p className="text-[#e87c03] text-[13px] px-1 py-1 font-medium">{errors.confirmPassword.message}</p>}
           </Field>
 
-          <Button type="submit" className="w-full bg-[#e50914] hover:bg-[#c11119] text-white font-semibold h-12 rounded mt-6 text-base shadow-sm">
-            Sign Up
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-[#e50914] hover:bg-[#c11119] text-white font-semibold h-12 rounded mt-6 text-base shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? <Loader2 className="size-5 animate-spin mx-auto" /> : "Sign Up"}
           </Button>
 
         </form>

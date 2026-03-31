@@ -1,17 +1,85 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getMovieDetails, getRecommendations, getMovieVideos } from "../services/movieService";
+import { getMovieDetails, getRecommendations, getMovieVideos, toggleFavorite, toggleWatchlist } from "../services/movieService";
 import MovieGrid from "../components/movie/MovieGrid";
 import MovieCard from "../components/movie/MovieCard";
+import TrailerPlayer from "../components/movie/TrailerPlayer";
+import { Play, Plus, Check, Info, Star, Clock, Calendar, Cloud } from "lucide-react";
+import { useWishlistStore } from "../store/useWishlistStore";
+import { toast } from "sonner";
+import { useLanguage } from "../context/LanguageContext";
+import usePageTitle from "../hooks/usePageTitle";
+import { useAuthStore } from "../store/useAuthStore";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function MovieDetailsPage() {
+  const { lang } = useLanguage();
   const { id } = useParams();
+  
+  const movieDetailsTranslations = useMemo(() => ({
+    added: { en: "added to My List", ar: "تمت إضافته إلى قائمتي", fr: "ajouté à ma liste", zh: "已添加到我的列表" },
+    removed: { en: "removed from My List", ar: "تمت إزالته من قائمتي", fr: "retiré de ma liste", zh: "已从我的列表中移除" },
+    watch: { en: "WATCH", ar: "مشاهدة", fr: "REGARDER", zh: "立即观看" },
+    addList: { en: "ADD LIST", ar: "إضافة للقائمة", fr: "AJOUTER", zh: "加入列表" },
+    myList: { en: "MY LIST", ar: "قائمتي", fr: "MA LISTE", zh: "我的列表" },
+    info: { en: "Movie Information", ar: "معلومات الفيلم", fr: "Informations", zh: "电影信息" },
+    duration: { en: "Duration", ar: "المدة", fr: "Durée", zh: "时长" },
+    release: { en: "Release", ar: "الإصدار", fr: "Sortie", zh: "上映时间" },
+    status: { en: "Status", ar: "الحالة", fr: "Statut", zh: "状态" },
+    genres: { en: "Genres", ar: "التصنيفات", fr: "Genres", zh: "类型" },
+    trailer: { en: "Watch Trailer", ar: "مشاهدة الإعلان", fr: "Bande-annonce", zh: "观看预告片" },
+    similar: { en: "You Might Also Like", ar: "قد يعجبك أيضاً", fr: "Vous pourriez aussi aimer", zh: "猜你喜欢" },
+    viewAll: { en: "View All", ar: "عرض الكل", fr: "Tout voir", zh: "查看全部" },
+    error: { en: "Failed to load movie details.", ar: "فشل تحميل تفاصيل الفيلم.", fr: "Échec du chargement des détails.", zh: "加载电影详情失败。" },
+    rating: { en: "Rating", ar: "تقييم", fr: "Note", zh: "评分" }
+  }), []);
+
+  const { t } = useTranslation(movieDetailsTranslations);
+  const { tmdbSessionId, tmdbAccount } = useAuthStore();
+  const toggleWishlist = useWishlistStore((state) => state.toggleWishlist);
+  const isInWishlist = useWishlistStore((state) => 
+    state.wishlistItems.some((item) => item.id === parseInt(id))
+  );
   
   const [movie, setMovie] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [trailer, setTrailer] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const handleWishlistToggle = async () => {
+    if (!movie) return;
+    
+    // Local update
+    toggleWishlist(movie);
+    
+    // TMDb Sync (Bonus)
+    if (tmdbSessionId && tmdbAccount) {
+      try {
+        const newState = !isInWishlist;
+        // We sync as both Favorite and Watchlist for maximum coverage on TMDb
+        await Promise.all([
+          toggleFavorite(tmdbAccount.id, tmdbSessionId, "movie", movie.id, newState),
+          toggleWatchlist(tmdbAccount.id, tmdbSessionId, "movie", movie.id, newState)
+        ]);
+        
+        toast.success(lang === "en" 
+          ? `${movie.title} synced with your TMDb account!` 
+          : `تم مزامنة ${movie.title} مع حساب TMDb الخاص بك!`, {
+            icon: <Cloud className="size-4 text-sky-400" />
+          });
+      } catch (err) {
+        console.error("TMDb Sync Error:", err);
+        toast.error(lang === "en" ? "Failed to sync with TMDb account" : "فشل المزامنة مع حساب TMDb");
+      }
+    } else {
+      if (!isInWishlist) {
+        toast.success(`${movie.title} ${t("added")}`);
+      } else {
+        toast.info(`${movie.title} ${t("removed")}`);
+      }
+    }
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -25,37 +93,37 @@ export default function MovieDetailsPage() {
     ])
       .then(([detailsRes, recsRes, videosRes]) => {
         setMovie(detailsRes.data);
-        setRecommendations(recsRes.data.results?.slice(0, 10) || []);
+        setRecommendations(recsRes.data.results?.slice(0, 12) || []);
         
         const videos = videosRes.data.results || [];
-        const trailerVideo = videos.find(v => v.type === "Trailer" && v.site === "YouTube");
+        const trailerVideo = videos.find(v => v.type === "Trailer" && v.site === "YouTube") || videos[0];
         setTrailer(trailerVideo || null);
       })
       .catch((err) => {
         console.error(err);
-        setError("Failed to load movie details.");
+        setError(t("error"));
       })
       .finally(() => {
         setIsLoading(false);
       });
-  }, [id]);
+  }, [id, lang]);
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <div className="w-12 h-12 border-4 border-[#E50914] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (error || !movie) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <div className="text-red-400 bg-red-900/20 p-8 rounded-xl border border-red-800 inline-block shadow-lg">
-          <h2 className="text-2xl font-bold mb-4">Error</h2>
-          <p>{error || "Movie not found"}</p>
-          <Link to="/" className="mt-6 inline-block text-indigo-400 hover:text-indigo-300 font-medium">
-            &larr; Back to Home
+      <div className="container mx-auto px-4 py-32 text-center bg-background min-h-screen">
+        <div className="bg-muted p-10 rounded-lg inline-block border border-border shadow-2xl">
+          <h2 className="text-3xl font-black mb-4 text-foreground">Oops!</h2>
+          <p className="text-muted-foreground mb-8">{error || "We couldn't find that movie."}</p>
+          <Link to="/" className="bg-[#E50914] text-white font-bold py-3 px-8 rounded-md hover:bg-[#b20710] transition-colors">
+            Return Home
           </Link>
         </div>
       </div>
@@ -65,127 +133,158 @@ export default function MovieDetailsPage() {
   const backdropUrl = movie.backdrop_path 
     ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` 
     : "";
-  const posterUrl = movie.poster_path 
-    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
-    : "https://via.placeholder.com/500x750?text=No+Image";
-
+  
   const releaseYear = movie.release_date ? movie.release_date.split("-")[0] : "";
 
   return (
-    <div className="pb-16 -mt-[73px]">
-      {/* Hero Section */}
-      <div className="relative w-full min-h-[70vh] md:min-h-[85vh] flex items-center pt-[73px]">
+    <div className="bg-background text-foreground min-h-screen font-sans selection:bg-[#E50914] selection:text-white transition-colors duration-300">
+      {/* Cinematic Hero Section */}
+      <section className="relative w-full h-[60vh] md:h-[85vh] lg:h-[95vh] overflow-hidden">
         {/* Backdrop Image */}
         {backdropUrl && (
-          <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0">
             <img 
               src={backdropUrl} 
               alt={movie.title} 
-              className="w-full h-full object-cover opacity-80"
+              className="w-full h-full object-cover"
             />
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/80 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/70 to-transparent"></div>
+            {/* Multi-stage Gradient Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-black/20"></div>
           </div>
         )}
         
-        {/* Hero Content */}
-        <div className="container mx-auto px-4 relative z-10 py-12">
-          <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center md:items-start">
-            {/* Poster */}
-            <div className="w-64 md:w-80 flex-shrink-0 animate-fade-in-up">
-              <img 
-                src={posterUrl} 
-                alt={movie.title} 
-                className="w-full rounded-2xl shadow-2xl border border-gray-700/50"
-              />
+        {/* Hero Content Overlay */}
+        <div className="absolute inset-0 flex flex-col justify-center pt-20 md:pt-32 pb-10 px-4 md:px-16 lg:px-24">
+          <div className="max-w-3xl animate-in fade-in slide-in-from-left-10 duration-1000">
+            {/* Meta Info */}
+            <div className="flex items-center gap-4 text-sm font-bold text-[#46d369] mb-4">
+              <span className="bg-foreground/10 text-foreground px-2 py-0.5 rounded text-[10px] uppercase tracking-widest border border-foreground/20">Original</span>
+              <div className="flex items-center gap-1">
+                <Star className="size-4 fill-current" />
+                <span>{movie.vote_average.toFixed(1)} {t("rating")}</span>
+              </div>
+              <span className="text-muted-foreground font-medium">|</span>
+              <span className="text-muted-foreground font-medium">{releaseYear}</span>
             </div>
+
+            {/* Title */}
+            <h1 className="text-3xl sm:text-4xl md:text-7xl lg:text-8xl font-black text-foreground leading-none tracking-tighter mb-4 uppercase drop-shadow-lg">
+              {movie.title}
+            </h1>
             
-            {/* Info */}
-            <div className="flex-1 text-center md:text-left animate-fade-in-up animation-delay-100">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight">
-                {movie.title} <span className="text-gray-400 font-normal">({releaseYear})</span>
-              </h1>
-              
-              {movie.tagline && (
-                <p className="text-xl text-indigo-300 italic mt-3 font-light">
-                  "{movie.tagline}"
-                </p>
-              )}
-              
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-6 text-sm font-medium">
-                {/* Rating */}
-                {movie.vote_average > 0 && (
-                  <div className="flex items-center gap-1 bg-yellow-500/10 text-yellow-500 px-3 py-1.5 rounded-full border border-yellow-500/30">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                     {movie.vote_average.toFixed(1)}
-                  </div>
-                )}
-                
-                {/* Runtime */}
-                {movie.runtime > 0 && (
-                  <div className="flex items-center gap-1.5 bg-gray-900/50 backdrop-blur-sm text-gray-300 px-3 py-1.5 rounded-full border border-gray-700">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                     {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
-                  </div>
-                )}
-                
-                {/* Genres */}
-                <div className="flex flex-wrap gap-2">
-                  {movie.genres?.map(genre => (
-                    <span key={genre.id} className="bg-indigo-900/30 backdrop-blur-sm text-indigo-300 border border-indigo-700/50 px-3 py-1.5 rounded-full">
-                      {genre.name}
-                    </span>
-                  ))}
+            {/* Tagline Secondary */}
+            <p className="text-sm md:text-2xl font-black text-foreground/80 mb-6 tracking-[0.2em] uppercase">
+               {movie.tagline || movie.genres?.[0]?.name || "Cinematic Experience"}
+            </p>
+            
+            {/* Description */}
+            <p className="text-foreground/90 text-base md:text-lg lg:text-xl leading-relaxed mb-10 line-clamp-3 md:line-clamp-none max-w-2xl font-medium drop-shadow-md">
+              {movie.overview}
+            </p>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+               <button className="flex items-center justify-center gap-3 bg-white text-black hover:bg-white/90 font-bold py-3 px-8 rounded-md transition-all scale-100 active:scale-95 shadow-xl">
+                 <Play className="size-6 fill-black" />
+                 <span>{t("watch")}</span>
+               </button>
+               <button 
+                 onClick={handleWishlistToggle}
+                 className={`flex items-center justify-center gap-3 backdrop-blur-md text-white font-bold py-3 px-8 rounded-md transition-all scale-100 active:scale-95 border border-transparent ${
+                   isInWishlist ? "bg-[#E50914] hover:bg-[#b20710]" : "bg-[#5a5a5a]/60 hover:bg-[#5a5a5a]/80"
+                 }`}
+               >
+                 {isInWishlist ? <Check className="size-6" /> : <Plus className="size-6" />}
+                 <span>{isInWishlist ? t("myList") : t("addList")}</span>
+               </button>
+               
+               {tmdbSessionId && (
+                 <div className="flex items-center gap-2 text-[10px] font-black text-sky-400/80 uppercase tracking-widest mt-1 ml-1 self-start sm:self-center">
+                    <Cloud className="size-3" />
+                    {lang === "en" ? "Cloud Sync Active" : "المزامنة السحابية نشطة"}
+                 </div>
+               )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Details & Video Player Section */}
+      <section className="px-4 md:px-16 lg:px-24 py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+          {/* Left Column: Info */}
+          <div className="lg:col-span-1 space-y-10">
+            <div>
+              <h3 className="text-[#E50914] text-xs font-black tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
+                <Info className="size-4" />
+                {t("info")}
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b border-border pb-3">
+                  <span className="text-muted-foreground font-bold text-sm uppercase px-1">{t("duration")}</span>
+                  <span className="text-foreground font-bold flex items-center gap-2">
+                    <Clock className="size-4 text-muted-foreground" />
+                    {movie.runtime} min
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b border-border pb-3">
+                  <span className="text-muted-foreground font-bold text-sm uppercase px-1">{t("release")}</span>
+                  <span className="text-foreground font-bold flex items-center gap-2">
+                    <Calendar className="size-4 text-muted-foreground" />
+                    {movie.release_date}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b border-border pb-3">
+                  <span className="text-muted-foreground font-bold text-sm uppercase px-1">{t("status")}</span>
+                  <span className="text-[#46d369] font-bold">{movie.status}</span>
                 </div>
               </div>
+            </div>
 
-              <div className="mt-10 max-w-3xl">
-                <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
-                  Overview
-                </h3>
-                <p className="text-gray-300 text-lg leading-relaxed">{movie.overview}</p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-10 flex flex-wrap gap-4 justify-center md:justify-start">
-                 {trailer && (
-                   <a 
-                     href={`https://www.youtube.com/watch?v=${trailer.key}`}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-full transition-all shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)] hover:-translate-y-1 flex items-center gap-2"
-                   >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                     Watch Trailer
-                   </a>
-                 )}
-                 <button className="bg-gray-800/80 hover:bg-gray-700 backdrop-blur-md text-white font-bold py-3 px-8 rounded-full transition-all border border-gray-600 hover:-translate-y-1 flex items-center gap-2">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-                   Add to Wishlist
-                 </button>
+            <div>
+              <h3 className="text-[#E50914] text-xs font-black tracking-[0.3em] uppercase mb-4">{t("genres")}</h3>
+              <div className="flex flex-wrap gap-2">
+                {movie.genres?.map(genre => (
+                  <span key={genre.id} className="bg-muted text-foreground border border-border px-4 py-2 rounded-full text-xs font-bold hover:bg-muted-foreground/10 transition-colors cursor-default">
+                    {genre.name}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
+
+          {/* Right Column: Video Trailer Player */}
+          <div className="lg:col-span-2">
+            <h3 className="text-foreground text-2xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-[#E50914]"></span>
+              {t("trailer")}
+            </h3>
+            
+            <TrailerPlayer trailer={trailer} title={movie.title} />
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Recommendations Section */}
-      {recommendations.length > 0 && (
-        <div className="container mx-auto px-4 mt-16 relative z-10">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-4 mb-6">
-            <h2 className="text-3xl font-black text-indigo-500 tracking-tight">
-              You Might Also <span>Like</span>
-            </h2>
-          </div>
-          <MovieGrid>
-            {recommendations.map(rec => (
-              <MovieCard key={rec.id} movie={rec} />
-            ))}
-          </MovieGrid>
+      <section className="px-4 md:px-16 lg:px-24 py-16 bg-gradient-to-b from-transparent to-muted/20">
+        <div className="mb-10 flex items-center justify-between">
+          <h2 className="text-3xl font-black text-foreground tracking-tighter uppercase flex items-center gap-4">
+            <span className="w-10 h-0.5 bg-[#E50914]"></span>
+            {t("similar")}
+          </h2>
+          <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors font-bold text-sm tracking-widest uppercase">
+            {t("viewAll")}
+          </Link>
         </div>
-      )}
+        
+        <MovieGrid>
+          {recommendations.map(rec => (
+            <MovieCard key={rec.id} movie={rec} />
+          ))}
+        </MovieGrid>
+      </section>
     </div>
   );
-}
+}
