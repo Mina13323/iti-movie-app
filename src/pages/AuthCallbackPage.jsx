@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createSession, getAccountDetails } from "../services/movieService";
 import { useAuthStore } from "../store/useAuthStore";
@@ -12,10 +12,14 @@ export default function AuthCallbackPage() {
   const { lang } = useLanguage();
   const setTmdbSession = useAuthStore((state) => state.setTmdbSession);
   
+  const isMounted = useRef(false);
   const [status, setStatus] = useState("loading"); // loading, success, error
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    if (isMounted.current) return;
+    isMounted.current = true;
+
     const requestToken = searchParams.get("request_token");
     const approved = searchParams.get("approved");
 

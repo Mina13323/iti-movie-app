@@ -19,8 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
-      VITE_TMDB_BASE_URL: ${{ vars.VITE_TMDB_BASE_URL }}
-      VITE_TMDB_IMAGE_BASE_URL: ${{ vars.VITE_TMDB_IMAGE_BASE_URL }}
+      VITE_TMDB_BASE_URL: https://api.themoviedb.org/3
+      VITE_TMDB_IMAGE_BASE_URL: https://image.tmdb.org/t/p/
+      VITE_TMDB_AUTH_URL: https://www.themoviedb.org/authenticate
     steps:
       - name: Checkout
         uses: actions/checkout@v4

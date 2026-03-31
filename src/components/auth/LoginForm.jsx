@@ -64,7 +64,8 @@ export function LoginForm({ className, ...props }) {
       const res = await getRequestToken();
       const token = res.data.request_token;
       
-      const callbackUrl = window.location.origin + "/auth/callback";
+      const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const callbackUrl = window.location.origin + baseUrl + "/auth/callback";
       const tmdbAuthUrl = `${import.meta.env.VITE_TMDB_AUTH_URL}/${token}?redirect_to=${encodeURIComponent(callbackUrl)}`;
       
       window.location.href = tmdbAuthUrl;
