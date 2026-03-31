@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url" // أضف هذا السطر
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  base: "/iti-movie-app/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
