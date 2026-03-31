@@ -1,0 +1,125 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useNavigate, Link } from "react-router-dom";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email."),
+  password: z.string().min(6, "Your password must contain between 4 and 60 characters."),
+});
+
+export function LoginForm({ className, ...props }) {
+  const nav = useNavigate();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = (data) => {
+    const existingUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
+
+    const user = existingUsers.find(
+      (u) => u.email === data.email && u.password === data.password
+    );
+
+    if (user) {
+      toast.success(`Welcome back, ${user.name}!`, {
+        icon: '🍿',
+        style: {
+          borderRadius: '4px',
+          background: '#e50914',
+          color: 'white',
+          border: 'none',
+        },
+      });
+      
+      localStorage.setItem("isLoggedIn", "true");
+      nav("/"); 
+    } else {
+      toast.error("Sorry, we can't find an account with this email address.", {
+        description: "Please try again or create a new account.",
+        duration: 4000,
+        style: {
+          background: '#d89d31', // Netflix warning color 
+          color: 'black',
+        }
+      });
+    }
+  };
+
+  return (
+    <div 
+      className={cn("w-full bg-black/80 md:px-16 px-8 py-16 md:-mt-[0px] shadow-2xl rounded-lg border-t-2 border-[#e50914]/20", className)} 
+      {...props}
+    >
+        <h1 className="text-white text-3xl font-bold mb-7 tracking-tight">Sign In</h1>
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          
+          <Field className="space-y-0 relative text-left">
+            <Input
+              id="email"
+              type="text"
+              placeholder="Email or phone number"
+              {...register("email")}
+              className={cn(
+                "w-full bg-[#333333]/70 focus:bg-[#454545] text-white border-0 h-14 rounded pt-3 px-4 text-base focus:ring-2 focus:ring-offset-0 focus:ring-white transition-all shadow-inner",
+                 errors.email && "border-b-2 border-[#e87c03]"
+              )}
+            />
+            {errors.email && <p className="text-[#e87c03] text-[13px] px-1 py-1 font-medium">{errors.email.message}</p>}
+          </Field>
+
+          <Field className="space-y-0 relative text-left">
+            <Input 
+              id="password" 
+              type="password" 
+              placeholder="Password"
+              {...register("password")}
+              className={cn(
+                "w-full bg-[#333333]/70 focus:bg-[#454545] text-white border-0 h-14 rounded pt-3 px-4 text-base focus:ring-2 focus:ring-offset-0 focus:ring-white transition-all shadow-inner",
+                 errors.password && "border-b-2 border-[#e87c03]"
+              )} 
+            />
+            {errors.password && <p className="text-[#e87c03] text-[13px] px-1 py-1 font-medium">{errors.password.message}</p>}
+          </Field>
+
+          <Button type="submit" className="w-full bg-[#e50914] hover:bg-[#c11119] text-white font-semibold h-12 rounded mt-6 text-base shadow-sm">
+            Sign In
+          </Button>
+
+          <div className="flex justify-between items-center text-[#b3b3b3] text-[13px] mt-2 font-medium">
+             <label className="flex items-center space-x-2 cursor-pointer group">
+               <input type="checkbox" className="w-4 h-4 rounded bg-[#737373] border-none text-[#e50914] focus:ring-0 checked:bg-[#e50914]" defaultChecked />
+               <span className="group-hover:text-[#e5e5e5] transition-colors">Remember me</span>
+             </label>
+             <Link to="#" className="hover:underline hover:text-[#e5e5e5] transition-colors">
+               Need help?
+             </Link>
+          </div>
+        </form>
+
+        <div className="mt-16 text-[#737373] text-[15px] font-medium">
+          <p className="mb-2">
+            New to NetMovies?{" "}
+            <Link to="/signup" className="text-white hover:underline transition-all font-semibold ml-1">
+              Sign up now.
+            </Link>
+          </p>
+          <p className="text-[13px] leading-snug font-normal text-[#8c8c8c]">
+            This page is protected by Google reCAPTCHA to ensure you&apos;re not a bot. 
+            <button className="text-[#0071eb] ml-1 hover:underline">Learn more.</button>
+          </p>
+        </div>
+    </div>
+  );
+}

@@ -3,3 +3,9 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 
+@layer base {
+  body {
+    background-color: #141414 !important;
+    color: #ffffff;
+  }
+}
