@@ -25,117 +25,126 @@ const BackToTop = lazy(() => import("./components/ui/BackToTop"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function App() {
-  const router = createBrowserRouter([
+  const router = createBrowserRouter(
+    [
+      {
+        path: "/",
+        element: (
+          <AuthGuardProvider>
+            <Toaster position="top-center" richColors />
+            <Suspense
+              fallback={
+                <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
+                  <div className="text-[#E50914] font-black text-4xl animate-pulse tracking-tighter">
+                    NETMOVIES
+                  </div>
+                  <div className="w-48 h-1 bg-muted overflow-hidden rounded-full">
+                    <div className="w-full h-full bg-[#E50914] animate-progress-loading" />
+                  </div>
+                </div>
+              }
+            >
+              <Navbar />
+              <main className="min-h-screen bg-background text-foreground transition-colors duration-300">
+                <Outlet />
+              </main>
+              <Footer />
+              <BackToTop />
+            </Suspense>
+          </AuthGuardProvider>
+        ),
+        children: [
+          {
+            index: true,
+            element: <HomePage />,
+          },
+          {
+            path: "login",
+            element: (
+              <PublicOnlyRoute>
+                <LoginPage />
+              </PublicOnlyRoute>
+            ),
+          },
+          {
+            path: "signup",
+            element: (
+              <PublicOnlyRoute>
+                <RegisterPage />
+              </PublicOnlyRoute>
+            ),
+          },
+          {
+            path: "auth/callback",
+            element: <AuthCallbackPage />,
+          },
+          {
+            path: "account",
+            element: (
+              <ProtectedRoute>
+                <AccountPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "search",
+            element: (
+              <ProtectedRoute>
+                <SearchResultsPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "movie/:id",
+            element: (
+              <ProtectedRoute>
+                <MovieDetailsPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "series/:id",
+            element: (
+              <ProtectedRoute>
+                <SeriesDetailsPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "wishlist",
+            element: (
+              <ProtectedRoute>
+                <WishlistPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "movies",
+            element: (
+              <ProtectedRoute>
+                <MoviesPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "series",
+            element: (
+              <ProtectedRoute>
+                <SeriesPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "*",
+            element: <NotFoundPage />,
+          },
+        ],
+      },
+    ],
     {
-      path: '/',
-      element: (
-        <AuthGuardProvider>
-          <Toaster position="top-center" richColors />
-          <Suspense fallback={
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
-              <div className="text-[#E50914] font-black text-4xl animate-pulse tracking-tighter">NETMOVIES</div>
-              <div className="w-48 h-1 bg-muted overflow-hidden rounded-full">
-                <div className="w-full h-full bg-[#E50914] animate-progress-loading" />
-              </div>
-            </div>
-          }>
-            <Navbar />
-            <main className="min-h-screen bg-background text-foreground transition-colors duration-300">
-              <Outlet />
-            </main>
-            <Footer />
-            <BackToTop />
-          </Suspense>
-        </AuthGuardProvider>
-      ),
-      children: [
-        {
-          index: true,
-          element: <HomePage />,
-        },
-        {
-          path: 'login',
-          element: (
-            <PublicOnlyRoute>
-              <LoginPage />
-            </PublicOnlyRoute>
-          ),
-        },
-        {
-          path: 'signup',
-          element: (
-            <PublicOnlyRoute>
-              <RegisterPage />
-            </PublicOnlyRoute>
-          ),
-        },
-        {
-          path: 'auth/callback',
-          element: <AuthCallbackPage />,
-        },
-        {
-          path: 'account',
-          element: (
-            <ProtectedRoute>
-              <AccountPage />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'search',
-          element: (
-             <ProtectedRoute>
-               <SearchResultsPage />
-             </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'movie/:id',
-          element: (
-            <ProtectedRoute>
-              <MovieDetailsPage />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'series/:id',
-          element: (
-            <ProtectedRoute>
-              <SeriesDetailsPage />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'wishlist',
-          element: (
-            <ProtectedRoute>
-              <WishlistPage />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'movies',
-          element: (
-            <ProtectedRoute>
-              <MoviesPage />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'series',
-          element: (
-            <ProtectedRoute>
-              <SeriesPage />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: '*',
-          element: <NotFoundPage />,
-        },
-      ],
-    },
-  ]);
+      basename: import.meta.env.BASE_URL,
+    }
+  );
 
   return (
     <LanguageProvider>
